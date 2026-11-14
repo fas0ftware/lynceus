@@ -4,7 +4,7 @@ import ipaddress
 import os
 from datetime import timedelta
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 DEFAULT_IP_RANGE = "192.168.1.0/24"
 SCAN_INTERVAL = 60               # seconds between two network scans
@@ -50,5 +50,15 @@ def is_loopback_host(host):
         return False
 
 
-def env(name, default=""):
-    return os.environ.get(name, default).strip()
+ENV_PREFIX = "LYNCEUS_"
+LEGACY_ENV_PREFIX = "NETMON_"  # the project was called network-monitor before 2.2
+
+
+def env(name, default="", environ=None):
+    """Setting `name` from LYNCEUS_<name>, or from the old NETMON_<name> if only that is set."""
+    environ = os.environ if environ is None else environ
+    for prefix in (ENV_PREFIX, LEGACY_ENV_PREFIX):
+        value = environ.get(prefix + name, "").strip()
+        if value:
+            return value
+    return default.strip()

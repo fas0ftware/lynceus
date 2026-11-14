@@ -1,4 +1,4 @@
-"""Flask dashboard and JSON API for the home network monitor."""
+"""Flask dashboard and JSON API for Lynceus, the home network watch."""
 
 import argparse
 import csv
@@ -18,7 +18,7 @@ import defense_guide
 from config import DEFAULT_HOST, DEFAULT_PORT, ONLINE_TIMEOUT, __version__, env, is_loopback_host
 
 MAC_PATTERN = re.compile(r"^[0-9a-f]{2}(:[0-9a-f]{2}){5}$")
-TOKEN_COOKIE = "netmon_token"  # cookie name, not a secret  # nosec B105
+TOKEN_COOKIE = "lynceus_token"  # cookie name, not a secret  # nosec B105
 
 
 def create_app(token=None, trusted_hosts=None):
@@ -31,11 +31,11 @@ def create_app(token=None, trusted_hosts=None):
     """
     app = Flask(__name__)
     app.config["TRUSTED_HOSTS"] = trusted_hosts or ["localhost", "127.0.0.1", "[::1]"]
-    app.config["NETMON_TOKEN"] = token or ""
+    app.config["LYNCEUS_TOKEN"] = token or ""
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
 
     def authorized():
-        expected = app.config["NETMON_TOKEN"]
+        expected = app.config["LYNCEUS_TOKEN"]
         if not expected:
             return True
         given = request.cookies.get(TOKEN_COOKIE, "")
@@ -70,7 +70,7 @@ def create_app(token=None, trusted_hosts=None):
 
     @app.route("/")
     def index():
-        expected = app.config["NETMON_TOKEN"]
+        expected = app.config["LYNCEUS_TOKEN"]
         given = request.args.get("token")
         if expected and given is not None:
             # Swap the token in the URL for an HttpOnly cookie, then drop it from the address bar
@@ -216,23 +216,23 @@ def get_devices():
 
 
 # Default instance (used by `flask run` and by the tests)
-app = create_app(token=env("NETMON_TOKEN") or None)
+app = create_app(token=env("TOKEN") or None)
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Home network monitor dashboard.")
-    parser.add_argument("--host", default=env("NETMON_HOST", DEFAULT_HOST),
+    parser = argparse.ArgumentParser(description="Lynceus dashboard.")
+    parser.add_argument("--host", default=env("HOST", DEFAULT_HOST),
                         help="address to listen on (default 127.0.0.1 = this computer only)")
-    parser.add_argument("--port", type=int, default=int(env("NETMON_PORT", str(DEFAULT_PORT))))
+    parser.add_argument("--port", type=int, default=int(env("PORT", str(DEFAULT_PORT))))
     parser.add_argument("--demo", action="store_true",
                         help="serve a throw-away database filled with sample devices")
     args = parser.parse_args(argv)
 
-    token = env("NETMON_TOKEN")
+    token = env("TOKEN")
     hosts = ["localhost", "127.0.0.1", "[::1]"]
     if not is_loopback_host(args.host):
         if len(token) < 16:
-            print("Refusing to listen on the network without NETMON_TOKEN (at least 16 characters).\n"
+            print("Refusing to listen on the network without LYNCEUS_TOKEN (at least 16 characters).\n"
                   "Generate one with:  python -c \"import secrets; print(secrets.token_urlsafe(24))\"",
                   file=sys.stderr)
             return 2
@@ -241,7 +241,7 @@ def main(argv=None):
         import tempfile
 
         import demo
-        db.DB_NAME = os.path.join(tempfile.mkdtemp(prefix="netmon-demo-"), "demo.db")
+        db.DB_NAME = os.path.join(tempfile.mkdtemp(prefix="lynceus-demo-"), "demo.db")
         demo.seed()
         print(f"Demo database: {db.DB_NAME}")
     else:

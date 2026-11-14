@@ -1,11 +1,13 @@
-# Home Network Monitor
+# Lynceus
 
-[![CI](https://github.com/fas0ftware/network-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/fas0ftware/network-monitor/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+[![CI](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml/badge.svg)](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml)
+![Version](https://img.shields.io/badge/version-2.2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 A lightweight tool that scans your home network, remembers every device it sees, checks each one for open ports, **alerts you on your desktop or phone** when something new appears, and shows it all in a live dashboard with an **activity timeline**. Since 2.1 it also **tells you what to do**: every open port has a risk level, an explanation and step-by-step instructions to close it, and the network gets a **security score**.
+
+Named after Lynceus, the Argonaut lookout whose eyes could see through walls and even into the earth: nothing on your network stays hidden from it. (Called *network-monitor* before 2.2.)
 
 Built with Python, Scapy, SQLite, Flask and vanilla JavaScript – no build step, no cloud, data stays on your machine.
 
@@ -85,8 +87,8 @@ A device counts as **online** if it was seen in the last 3 minutes.
 Requirements: Linux, Python 3.10+, root for the scanner (raw ARP packets), optionally `notify-send` (`libnotify`).
 
 ```bash
-git clone https://github.com/fas0ftware/network-monitor.git
-cd network-monitor
+git clone https://github.com/fas0ftware/lynceus.git
+cd lynceus
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -112,14 +114,16 @@ Find your subnet with `ip -4 -brief a` (`192.168.1.23/24` → `192.168.1.0/24`).
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `NETMON_IP_RANGE` | `192.168.1.0/24` | Subnet to scan |
-| `NETMON_DB` | `devices.db` | SQLite file (read by both programs) |
-| `NETMON_NTFY_URL` | – | e.g. `https://ntfy.sh/<long-random-topic>` for phone push |
-| `NETMON_WEBHOOK_URL` | – | Discord / Slack / Mattermost incoming webhook |
-| `NETMON_HOST` / `NETMON_PORT` | `127.0.0.1` / `5000` | Dashboard address |
-| `NETMON_TOKEN` | – | Required (16+ chars) when `NETMON_HOST` is not loopback |
+| `LYNCEUS_IP_RANGE` | `192.168.1.0/24` | Subnet to scan |
+| `LYNCEUS_DB` | `devices.db` | SQLite file (read by both programs) |
+| `LYNCEUS_NTFY_URL` | – | e.g. `https://ntfy.sh/<long-random-topic>` for phone push |
+| `LYNCEUS_WEBHOOK_URL` | – | Discord / Slack / Mattermost incoming webhook |
+| `LYNCEUS_HOST` / `LYNCEUS_PORT` | `127.0.0.1` / `5000` | Dashboard address |
+| `LYNCEUS_TOKEN` | – | Required (16+ chars) when `LYNCEUS_HOST` is not loopback |
 
-To open the dashboard on your phone: set `NETMON_HOST=0.0.0.0` and a token (`python -c "import secrets; print(secrets.token_urlsafe(24))"`), then visit `http://<pc-ip>:5000/?token=<token>` once.
+The old `NETMON_*` names from before 2.2 still work; a `LYNCEUS_*` setting wins when both are set.
+
+To open the dashboard on your phone: set `LYNCEUS_HOST=0.0.0.0` and a token (`python -c "import secrets; print(secrets.token_urlsafe(24))"`), then visit `http://<pc-ip>:5000/?token=<token>` once.
 
 ### API
 
@@ -138,7 +142,7 @@ To open the dashboard on your phone: set `NETMON_HOST=0.0.0.0` and a token (`pyt
 
 ## Tests
 
-88 tests (plus subtests) – the advisor (every scanned port has complete advice, score, caps, acknowledged ports, its API and token protection), database and migrations, event log, API, security headers, DNS-rebinding and CSRF guards, token flow, CSV injection guard, port scanner on local sockets, alerts and webhooks (mocked), the scan loop with fake network data, demo data. No root, no network.
+89 tests (plus subtests) – the advisor (every scanned port has complete advice, score, caps, acknowledged ports, its API and token protection), database and migrations, event log, API, security headers, DNS-rebinding and CSRF guards, token flow, CSV injection guard, port scanner on local sockets, alerts and webhooks (mocked), the scan loop with fake network data, demo data. No root, no network.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -163,6 +167,8 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 - Desktop notifications are Linux-only (`notify-send`); push webhooks work everywhere.
 
 ## Changelog
+
+- **2.2.0** – new name: **Lynceus** (was network-monitor). Settings are `LYNCEUS_*`; the old `NETMON_*` names keep working. The dashboard login cookie was renamed, so a phone that used the token link opens it once more.
 
 - **2.1.0** – Security advisor: risk level and fix guide for 29 ports (10 more scanned: ADB, Docker API, Redis, MongoDB, MySQL, PostgreSQL, NFS, rpcbind, CUPS, Telnet on 2323), side panel with copyable commands, security score and "Fix these first", acknowledge ports ("I know about this"), "Defend your network" tab with checklist and unknown-device playbook. Risky ports and alerts now follow the advisor's levels (high and critical). Ported from the 2.0-era `security-advisor` branch and translated to English.
 - **2.0.0** – Activity timeline (new device, IP change, back online, port opened/closed, removed), ntfy + Discord/Slack webhooks, forget device, CSV export, summary cards, search and filters, randomized-MAC detection, `--once`, `--demo`; security hardening (token for LAN mode, DNS-rebinding and CSRF guards, CSP and security headers, request size limit, CSV formula guard); English UI; pytest suite; CI security scans.

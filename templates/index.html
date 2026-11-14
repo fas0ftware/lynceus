@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Home Network Monitor</title>
+  <title>Lynceus</title>
+  <link rel="icon" href="{{ url_for('static', filename='lynceus.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header>
     <div>
-      <h1>Home Network Monitor</h1>
+      <h1 class="brand"><img src="{{ url_for('static', filename='lynceus.svg') }}" alt="" width="30" height="30"> Lynceus <span class="brand__tag">home network watch</span></h1>
       <div id="summary" class="muted">Loading…</div>
     </div>
     <div class="actions">

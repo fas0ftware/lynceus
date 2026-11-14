@@ -5,6 +5,8 @@
 body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
 header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
 h1 { margin: 0 0 4px; font-size: 26px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand__tag { font-size: 13px; font-weight: 500; color: var(--muted, #8b949e); text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
 h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px; }
 .muted { color: var(--muted); font-size: 14px; }
 .actions { display: flex; gap: 14px; align-items: center; }

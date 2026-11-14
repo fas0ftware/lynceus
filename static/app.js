@@ -1,4 +1,4 @@
-// Home Network Monitor dashboard. Every value from the API is written with
+// Lynceus dashboard. Every value from the API is written with
 // textContent (never innerHTML), so device names and vendors cannot inject HTML.
 "use strict";
 
@@ -50,7 +50,7 @@ function postJson(path, body) {
 const store = {
   get(key, fallback) {
     try {
-      const raw = localStorage.getItem("netmon." + key);
+      const raw = localStorage.getItem("lynceus." + key);
       return raw === null ? fallback : JSON.parse(raw);
     } catch (e) {
       return fallback;
@@ -58,7 +58,7 @@ const store = {
   },
   set(key, value) {
     try {
-      localStorage.setItem("netmon." + key, JSON.stringify(value));
+      localStorage.setItem("lynceus." + key, JSON.stringify(value));
     } catch (e) {
       /* not saved; the page still works */
     }

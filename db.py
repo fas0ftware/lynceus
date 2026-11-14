@@ -1,13 +1,12 @@
 """SQLite storage: devices, open ports and an event log."""
 
-import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 
-from config import ONLINE_TIMEOUT
+from config import ONLINE_TIMEOUT, env
 
-DB_NAME = os.environ.get("NETMON_DB", "devices.db")
+DB_NAME = env("DB", "devices.db")
 
 # Event kinds written to the log (shown on the dashboard timeline)
 NEW_DEVICE = "new_device"

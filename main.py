@@ -11,6 +11,7 @@ from config import (
     PORT_RESCAN_INTERVAL,
     SCAN_INTERVAL,
     __version__,
+    env,
     normalize_ip_range,
 )
 from db import count_devices, create_tables, prune_events, save_device, save_ports
@@ -64,11 +65,11 @@ def run_round(ip_range, silent):
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="Home network monitor: ARP discovery + port checks.")
+    parser = argparse.ArgumentParser(description="Lynceus: home network watch (ARP discovery + port checks).")
     parser.add_argument(
         "-r", "--range",
-        default=os.environ.get("NETMON_IP_RANGE", DEFAULT_IP_RANGE),
-        help=f"subnet to scan (default: {DEFAULT_IP_RANGE}, or NETMON_IP_RANGE)",
+        default=env("IP_RANGE", DEFAULT_IP_RANGE),
+        help=f"subnet to scan (default: {DEFAULT_IP_RANGE}, or LYNCEUS_IP_RANGE)",
     )
     parser.add_argument(
         "-i", "--interval", type=int, default=SCAN_INTERVAL,

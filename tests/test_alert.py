@@ -59,7 +59,7 @@ class PushTests(unittest.TestCase):
         self.assertEqual(self.calls, [])
 
     def test_ntfy_and_webhook(self):
-        env = {"NETMON_NTFY_URL": "https://ntfy.sh/topic", "NETMON_WEBHOOK_URL": "https://discord.com/api/webhooks/x"}
+        env = {"LYNCEUS_NTFY_URL": "https://ntfy.sh/topic", "LYNCEUS_WEBHOOK_URL": "https://discord.com/api/webhooks/x"}
         self.assertEqual(alert.send_push("New device ✓", "192.168.1.5 - Apple", env=env), 2)
         ntfy, hook = self.calls
         self.assertEqual(ntfy[1], "192.168.1.5 - Apple".encode())
@@ -70,7 +70,7 @@ class PushTests(unittest.TestCase):
     def test_bad_urls_are_ignored(self):
         for url in ("file:///etc/passwd", "ftp://x/y", "not a url", "https://"):
             with self.subTest(url=url):
-                self.assertEqual(alert.send_push("T", "M", env={"NETMON_WEBHOOK_URL": url}), 0)
+                self.assertEqual(alert.send_push("T", "M", env={"LYNCEUS_WEBHOOK_URL": url}), 0)
         self.assertEqual(self.calls, [])
 
     def test_failure_is_reported_not_raised(self):
@@ -78,7 +78,7 @@ class PushTests(unittest.TestCase):
             raise OSError("down")
         out = io.StringIO()
         with mock.patch.object(alert, "_post", boom), redirect_stdout(out):
-            self.assertEqual(alert.send_push("T", "M", env={"NETMON_NTFY_URL": "https://ntfy.sh/t"}), 0)
+            self.assertEqual(alert.send_push("T", "M", env={"LYNCEUS_NTFY_URL": "https://ntfy.sh/t"}), 0)
         self.assertIn("ntfy notification failed: OSError", out.getvalue())
 
 

@@ -159,10 +159,18 @@ class TokenTests(TempDatabaseTestCase):
 
 class ServeTests(unittest.TestCase):
     def test_lan_mode_requires_long_token(self):
-        with mock.patch.dict(app_module.os.environ, {"NETMON_TOKEN": "short"}), \
+        with mock.patch.dict(app_module.os.environ, {"LYNCEUS_TOKEN": "short"}), \
                 mock.patch("sys.stderr", io.StringIO()) as err:
             self.assertEqual(app_module.main(["--host", "0.0.0.0"]), 2)
-        self.assertIn("NETMON_TOKEN", err.getvalue())
+        self.assertIn("LYNCEUS_TOKEN", err.getvalue())
+
+
+class SettingsNameTests(unittest.TestCase):
+    def test_new_names_win_and_old_netmon_names_still_work(self):
+        from config import env
+        self.assertEqual(env("PORT", "5000", environ={"NETMON_PORT": "6000"}), "6000")
+        self.assertEqual(env("PORT", "5000", environ={"NETMON_PORT": "6000", "LYNCEUS_PORT": "7000"}), "7000")
+        self.assertEqual(env("PORT", "5000", environ={"LYNCEUS_PORT": "  "}), "5000")
 
 
 class DemoTests(TempDatabaseTestCase):

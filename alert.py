@@ -1,8 +1,8 @@
 """Alerts: terminal, desktop (notify-send) and optional push webhooks.
 
 Webhooks are configured with environment variables:
-  NETMON_NTFY_URL     e.g. https://ntfy.sh/my-secret-topic  (plain-text POST, phone push via ntfy app)
-  NETMON_WEBHOOK_URL  Discord / Slack / Mattermost incoming webhook (JSON POST)
+  LYNCEUS_NTFY_URL     e.g. https://ntfy.sh/my-secret-topic  (plain-text POST, phone push via ntfy app)
+  LYNCEUS_WEBHOOK_URL  Discord / Slack / Mattermost incoming webhook (JSON POST)
 """
 
 import json
@@ -11,6 +11,8 @@ import shutil
 import subprocess  # only fixed argument lists, never a shell  # nosec B404
 import urllib.request
 from urllib.parse import urlparse
+
+from config import env as config_env
 
 WEBHOOK_TIMEOUT = 5
 
@@ -34,7 +36,7 @@ def _post(url, data, content_type, headers=None):
 def send_push(title, message, env=os.environ):
     """Send to the configured webhooks. Returns the number of successful deliveries."""
     sent = 0
-    ntfy = env.get("NETMON_NTFY_URL", "").strip()
+    ntfy = config_env("NTFY_URL", environ=env)
     if ntfy and valid_webhook(ntfy):
         try:
             # ntfy headers must be latin-1; strip what does not fit
@@ -45,7 +47,7 @@ def send_push(title, message, env=os.environ):
         except Exception as error:
             print(f"(ntfy notification failed: {type(error).__name__})")
 
-    hook = env.get("NETMON_WEBHOOK_URL", "").strip()
+    hook = config_env("WEBHOOK_URL", environ=env)
     if hook and valid_webhook(hook):
         text = f"**{title}**\n{message}"
         body = json.dumps({"content": text, "text": text, "title": title, "message": message})
