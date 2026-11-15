@@ -19,6 +19,19 @@ from advisor import RISKY_LEVELS, port_info
 from portscan import scan_ports
 from scanner import scan
 
+def can_send_raw_packets():
+    """True when this process may open a raw packet socket: root, or a process given only
+    CAP_NET_RAW (as in the Docker image). Asking the kernel beats guessing from the uid."""
+    import socket
+    if not hasattr(socket, "AF_PACKET"):
+        return hasattr(os, "geteuid") and os.geteuid() == 0   # not Linux: keep the old rule
+    try:
+        socket.socket(socket.AF_PACKET, socket.SOCK_RAW).close()
+        return True
+    except PermissionError:
+        return False
+
+
 # MAC -> time of the last port scan (kept while the program runs)
 last_port_scan = {}
 
@@ -92,10 +105,10 @@ def main(argv=None):
         print("Error: the scan interval must be at least 5 seconds.", file=sys.stderr)
         return 2
 
-    if hasattr(os, "geteuid") and os.geteuid() != 0:
+    if not can_send_raw_packets():
         print(
-            "Error: ARP scanning needs root. Run it like this:\n"
-            "  sudo venv/bin/python main.py",
+            "Error: ARP scanning needs raw packets (root or the CAP_NET_RAW capability).\n"
+            "Run it like this:  sudo venv/bin/python main.py   (or use the Docker image)",
             file=sys.stderr,
         )
         return 1

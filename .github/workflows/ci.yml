@@ -34,3 +34,23 @@ jobs:
         run: bandit -q -r . -x ./tests,./venv,./.venv
       - name: Dependency audit (pip-audit)
         run: pip-audit -r requirements.txt
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t lynceus:ci .
+      - name: Scanner gets raw packets only with NET_RAW, as a normal user
+        run: |
+          set -e
+          probe='import os, socket; socket.socket(socket.AF_PACKET, socket.SOCK_RAW).close(); print("raw ok as uid", os.getuid())'
+          docker run --rm --cap-drop ALL --cap-add NET_RAW lynceus:ci python-netraw -c "$probe" | grep "raw ok as uid 10001"
+          ! docker run --rm --cap-drop ALL lynceus:ci python-netraw -c "$probe"
+      - name: Dashboard runs with every capability dropped
+        run: |
+          set -e
+          docker run -d --name dash --network host --cap-drop ALL --security-opt no-new-privileges:true \
+            --read-only --tmpfs /tmp -v lyn:/data lynceus:ci python app.py
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:5000/api/devices && break; sleep 1; done
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.example' http://127.0.0.1:5000/api/devices)" = 400
+          docker rm -f dash

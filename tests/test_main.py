@@ -67,3 +67,26 @@ class RunRoundTests(TempDatabaseTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RawPermissionTest(unittest.TestCase):
+    """main.py asks the kernel for a raw socket instead of checking for uid 0, so the
+    Docker image can run it as a normal user with only CAP_NET_RAW."""
+
+    def test_permission_error_means_no(self):
+        with mock.patch("socket.socket", side_effect=PermissionError):
+            self.assertFalse(main.can_send_raw_packets())
+
+    def test_a_raw_socket_means_yes(self):
+        fake = mock.MagicMock()
+        with mock.patch("socket.socket", return_value=fake) as sock:
+            self.assertTrue(main.can_send_raw_packets())
+        sock.assert_called_once()
+        fake.close.assert_called_once()
+
+    def test_refuses_to_start_without_it(self):
+        with mock.patch.object(main, "can_send_raw_packets", return_value=False), \
+                mock.patch.object(main, "create_tables") as tables, \
+                mock.patch("sys.stderr"):
+            self.assertEqual(main.main(["--once"]), 1)
+        tables.assert_not_called()

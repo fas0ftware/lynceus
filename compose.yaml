@@ -1,0 +1,39 @@
+# docker compose up -d     (settings: copy .env.example to .env)
+# Both services use the host network: ARP only works there, and the dashboard then
+# listens on the host's 127.0.0.1:5000 only (set LYNCEUS_HOST and a token to open it
+# to the LAN).
+x-hardening: &hardening
+  read_only: true
+  tmpfs: [/tmp]
+  restart: unless-stopped
+  volumes:
+    - lynceus-data:/data
+
+services:
+  scanner:
+    <<: *hardening
+    build: .
+    image: lynceus:2.3.0
+    network_mode: host
+    cap_drop: [ALL]
+    cap_add: [NET_RAW]
+    environment:
+      LYNCEUS_IP_RANGE: ${LYNCEUS_IP_RANGE:-192.168.1.0/24}
+      LYNCEUS_NTFY_URL: ${LYNCEUS_NTFY_URL:-}
+      LYNCEUS_WEBHOOK_URL: ${LYNCEUS_WEBHOOK_URL:-}
+
+  dashboard:
+    <<: *hardening
+    image: lynceus:2.3.0
+    depends_on: [scanner]
+    command: ["python", "app.py"]
+    network_mode: host
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      LYNCEUS_HOST: ${LYNCEUS_HOST:-127.0.0.1}
+      LYNCEUS_PORT: ${LYNCEUS_PORT:-5000}
+      LYNCEUS_TOKEN: ${LYNCEUS_TOKEN:-}
+
+volumes:
+  lynceus-data:

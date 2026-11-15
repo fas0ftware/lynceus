@@ -1,7 +1,7 @@
 # Lynceus
 
 [![CI](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml/badge.svg)](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-2.2.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -84,7 +84,7 @@ A device counts as **online** if it was seen in the last 3 minutes.
 
 ## Installation
 
-Requirements: Linux, Python 3.10+, root for the scanner (raw ARP packets), optionally `notify-send` (`libnotify`).
+Requirements: Linux, Python 3.10+, root or `CAP_NET_RAW` for the scanner (raw ARP packets), optionally `notify-send` (`libnotify`). Or Docker (below).
 
 ```bash
 git clone https://github.com/fas0ftware/lynceus.git
@@ -92,6 +92,26 @@ cd lynceus
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+### Docker
+
+```bash
+cp .env.example .env        # LYNCEUS_IP_RANGE, push URLs, dashboard address
+docker compose up -d        # scanner + dashboard, data in the lynceus-data volume
+```
+
+The dashboard is then at `http://127.0.0.1:5000` on the host. Both containers use the
+host network (ARP only works there) and run as an unprivileged user with a read-only
+file system:
+
+- **scanner**: every capability dropped except `CAP_NET_RAW`. Instead of root, only a
+  copy of the Python interpreter that the scanner alone uses carries that one file
+  capability; without it the scanner cannot start.
+- **dashboard**: no capabilities at all and `no-new-privileges`.
+
+CI builds the image and checks both: raw packets only with `NET_RAW` as uid 10001, and
+the dashboard answering with everything dropped. Desktop notifications do not reach a
+container; use `LYNCEUS_NTFY_URL` or `LYNCEUS_WEBHOOK_URL` there.
 
 ## Usage
 
@@ -168,6 +188,8 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 
 ## Changelog
 
+- **2.3.0** – Docker image and `compose.yaml` (scanner with only `CAP_NET_RAW` as a normal user, dashboard with no capabilities). The scanner now asks the kernel whether it may send raw packets instead of insisting on root, so it also runs with just that capability outside Docker.
+
 - **2.2.0** – new name: **Lynceus** (was network-monitor). Settings are `LYNCEUS_*`; the old `NETMON_*` names keep working. The dashboard login cookie was renamed, so a phone that used the token link opens it once more.
 
 - **2.1.0** – Security advisor: risk level and fix guide for 29 ports (10 more scanned: ADB, Docker API, Redis, MongoDB, MySQL, PostgreSQL, NFS, rpcbind, CUPS, Telnet on 2323), side panel with copyable commands, security score and "Fix these first", acknowledge ports ("I know about this"), "Defend your network" tab with checklist and unknown-device playbook. Risky ports and alerts now follow the advisor's levels (high and critical). Ported from the 2.0-era `security-advisor` branch and translated to English.
@@ -176,7 +198,7 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 
 ## Roadmap
 
-- [ ] Docker image
+- [x] Docker image (2.3)
 - [ ] Use the trusted flag to mute port alerts for chosen devices
 - [ ] Detect what actually answers on a port (banners) instead of trusting the port number
 - [ ] Per-device history chart
