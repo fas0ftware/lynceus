@@ -1,7 +1,7 @@
 # Lynceus
 
 [![CI](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml/badge.svg)](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-2.4.0-blue)
+![Version](https://img.shields.io/badge/version-2.5.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -199,6 +199,8 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 
 ## Changelog
 
+- **2.5.0** – Trusted devices no longer push alerts for ordinary new ports (the event log still records them). Risky ports (high and critical, e.g. Telnet, SMB, an open database) on a trusted device still alert: that is when you most want to know.
+
 - **2.4.0** – Port checks with [Janus](https://github.com/fas0ftware/janus) when it is installed (and in the Docker image): what really answers on each port, stored in a new `version` column (older databases get it on start) and shown on the dashboard. Falls back to the built-in scan when Janus is missing or fails.
 
 - **2.3.0** – Docker image and `compose.yaml` (scanner with only `CAP_NET_RAW` as a normal user, dashboard with no capabilities). The scanner now asks the kernel whether it may send raw packets instead of insisting on root, so it also runs with just that capability outside Docker.
@@ -212,7 +214,7 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 ## Roadmap
 
 - [x] Docker image (2.3)
-- [ ] Use the trusted flag to mute port alerts for chosen devices
+- [x] Use the trusted flag to mute port alerts for chosen devices (2.5; risky ports still alert)
 - [x] Detect what actually answers on a port instead of trusting the port number (2.4, with Janus)
 - [ ] Per-device history chart
 

@@ -59,6 +59,23 @@ class RunRoundTests(TempDatabaseTestCase):
         self.assertIn("23/telnet", self.alerts[0][1])
         self.assertIn("risky", self.alerts[0][1])
 
+    def test_trusted_device_mutes_ordinary_port_alerts_but_not_risky_ones(self):
+        import db
+        self.ports = [(22, "ssh")]
+        main.run_round(IP_RANGE, silent=True)
+        db.update_device(DEVICE["mac"], "NAS", True)
+        self.ports = [(22, "ssh"), (8080, "http-alt")]
+        with mock.patch.object(main, "PORT_RESCAN_INTERVAL", 0), mock.patch("builtins.print"):
+            main.run_round(IP_RANGE, silent=False)
+        self.assertEqual(self.alerts, [], "ordinary port on a trusted device: logged, not pushed")
+        self.ports = [(22, "ssh"), (8080, "http-alt"), (23, "telnet")]
+        with mock.patch.object(main, "PORT_RESCAN_INTERVAL", 0), mock.patch("builtins.print"):
+            main.run_round(IP_RANGE, silent=False)
+        self.assertEqual(len(self.alerts), 1)
+        self.assertIn("23/telnet", self.alerts[0][1])
+        events = [e for e in db.get_events() if e["kind"] == "port_opened"]
+        self.assertEqual(len(events), 2, "both ports are in the event log")
+
     def test_ports_not_rescanned_before_interval(self):
         main.run_round(IP_RANGE, silent=True)
         main.run_round(IP_RANGE, silent=True)

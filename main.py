@@ -14,7 +14,7 @@ from config import (
     env,
     normalize_ip_range,
 )
-from db import count_devices, create_tables, prune_events, save_device, save_ports
+from db import count_devices, create_tables, is_trusted, prune_events, save_device, save_ports
 from advisor import RISKY_LEVELS, port_info
 from portscan import janus_binary, scan_device
 from scanner import scan
@@ -49,10 +49,17 @@ def scan_device_ports(device, silent):
         return
 
     services = {item[0]: item[1] for item in open_ports}
+    # A trusted device's ordinary new ports are only logged. Risky ones (high and critical)
+    # still push: telnet suddenly open on the trusted NAS is exactly what you want to hear.
+    trusted = is_trusted(mac)
     for port in new_ports:
         info = port_info(port, services[port])
-        risky = f" (risky: {info['risk']}, {info['name']})" if info["risk"] in RISKY_LEVELS else ""
+        is_risky = info["risk"] in RISKY_LEVELS
+        risky = f" (risky: {info['risk']}, {info['name']})" if is_risky else ""
         text = f"{device['ip']} opened port {port}/{services[port]}{risky}"
+        if trusted and not is_risky:
+            print(f"  new port on a trusted device (no alert): {text}")
+            continue
         print(f"  NEW PORT: {text}")
         send_notification("New open port on your network", text)
 

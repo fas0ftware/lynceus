@@ -153,6 +153,12 @@ def _human(delta):
     return f"{hours} h" if hours < 48 else f"{hours // 24} days"
 
 
+def is_trusted(mac):
+    with get_connection() as conn:
+        row = conn.execute("SELECT trusted FROM devices WHERE mac = ?", (mac,)).fetchone()
+    return bool(row and row[0])
+
+
 def update_device(mac, name, trusted):
     """Save a friendly name and the trusted flag. False if the device is unknown."""
     with get_connection() as conn:
