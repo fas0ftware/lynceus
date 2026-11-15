@@ -53,5 +53,19 @@ def seed(now=None):
         for mac, port in ACCEPTED:
             conn.execute("INSERT OR REPLACE INTO accepted_ports VALUES (?, ?, ?)", (mac, port, now.isoformat(timespec="seconds")))
         conn.execute("DELETE FROM events WHERE mac = ? AND kind = ?", ("9a:1f:44:c2:0b:7d", db.NEW_DEVICE))
+        # hours each device was seen over the last two weeks: always-on gear all day,
+        # phones and laptops in the evening and on weekends, the speaker until two days ago
+        for i, (mac, ip, vendor, name, trusted, ago, ports) in enumerate(DEVICES):
+            for hours_back in range(14 * 24):
+                t = now - timedelta(hours=hours_back)
+                if (hours_back + 1) * 60 <= ago:      # after it was last seen
+                    continue
+                always = name in ("Router", "Pi-hole", "Hue Bridge", "Printer", "Old camera Pi", "Echo Dot", "TV box")
+                weekend = t.weekday() >= 5
+                busy = 7 <= t.hour <= 23 if name in ("iPhone", "") else (
+                    (9 <= t.hour <= 18 and not weekend) if name == "Work laptop" else 18 <= t.hour <= 23 or (weekend and t.hour >= 10))
+                if always or busy or (hours_back == 0 and ago < 15) or (hours_back * 7 + i) % 23 == 0:
+                    conn.execute("INSERT OR IGNORE INTO presence (mac, hour) VALUES (?, ?)",
+                                 (mac, t.isoformat(timespec="seconds")[:13]))
         for ago, kind, mac, ip, detail in events:
             db._log(conn, kind, mac, ip, detail, (now - timedelta(minutes=ago)).isoformat(timespec="seconds"))

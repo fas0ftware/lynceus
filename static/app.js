@@ -156,10 +156,13 @@ function renderDevices() {
     const actions = el("td");
     const saveBtn = el("button", "", "Save");
     saveBtn.addEventListener("click", () => save(d.mac, nameBox.value.trim(), trustBox.checked, saveBtn));
+    const histBtn = el("button", "", "History");
+    histBtn.title = "When it was online, and its port changes";
+    histBtn.addEventListener("click", () => openHistory(d));
     const delBtn = el("button", "danger", "✕");
     delBtn.title = "Forget this device";
     delBtn.addEventListener("click", () => forget(d));
-    actions.append(saveBtn, delBtn);
+    actions.append(saveBtn, histBtn, delBtn);
     tr.appendChild(actions);
 
     body.appendChild(tr);
@@ -331,6 +334,81 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !$("drawer").hidden) closeAdvice();
 });
 
+/* ---------- device history ---------- */
+
+const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+async function openHistory(d) {
+  if (location.hash !== `#history=${d.mac}`) history.replaceState(null, "", `#history=${d.mac}`);
+  hashOpened = d.mac;
+  try {
+    const h = await api(`/api/devices/${encodeURIComponent(d.mac)}/history?days=14`);
+    $("history-title").textContent = d.name || d.vendor || "Unnamed device";
+    $("history-device").textContent = `${d.ip} · ${mask(d.mac)}`;
+    const grid = $("history-grid");
+    grid.replaceChildren(el("span"));
+    for (let hr = 0; hr < 24; hr++) grid.appendChild(el("span", "axis", hr % 6 === 0 ? String(hr) : ""));
+    for (const day of h.days) {
+      const date = new Date(day.date + "T12:00:00");
+      grid.appendChild(el("span", "day", `${WEEKDAY[date.getDay()]} ${day.date.slice(5)}`));
+      day.hours.forEach((on, hr) => {
+        const sq = el("span", on ? "h on" : "h");
+        sq.title = `${day.date} ${String(hr).padStart(2, "0")}:00 · ${on ? "online" : "not seen"}`;
+        grid.appendChild(sq);
+      });
+    }
+    const seenDays = h.days.filter((x) => x.online).length;
+    $("history-summary").textContent = h.online_hours
+      ? `Seen in ${h.online_hours} of ${h.days.length * 24} hours, on ${seenDays} of ${h.days.length} days.`
+      : "No hours recorded yet: history starts with Lynceus 2.6.";
+    const max = Math.max(1, ...h.by_hour);
+    $("history-hours").replaceChildren(...h.by_hour.map((n, hr) => {
+      const bar = el("div");
+      bar.style.height = `${(100 * n) / max}%`;
+      bar.title = `${String(hr).padStart(2, "0")}:00 · seen on ${n} day(s)`;
+      return bar;
+    }));
+    const list = $("history-events");
+    list.replaceChildren();
+    if (!h.events.length) list.appendChild(el("li", "", "No events for this device."));
+    for (const e of h.events) {
+      const li = el("li", e.kind);
+      const when = el("div", "when", fmt(e.ts));
+      li.append(el("strong", "", (EVENT_TEXT[e.kind] || e.kind) + " "), el("span", "", e.detail || e.ip || ""), when);
+      list.appendChild(li);
+    }
+    $("history").hidden = false;
+    $("history-backdrop").hidden = false;
+    $("history-close").focus();
+  } catch (e) {
+    alert("Could not load the history: " + e.message);
+  }
+}
+
+function closeHistory() {
+  $("history").hidden = true;
+  $("history-backdrop").hidden = true;
+  if (location.hash.startsWith("#history=")) history.replaceState(null, "", location.pathname + location.search);
+}
+
+// A link such as /#history=aa:bb:cc:dd:ee:ff opens that device's history.
+let hashOpened = "";
+function openFromHash() {
+  const m = /^#history=([0-9a-f:]{17})$/i.exec(location.hash);
+  if (!m || hashOpened === m[1].toLowerCase()) return;
+  const d = devices.find((x) => x.mac === m[1].toLowerCase());
+  if (!d) return;
+  hashOpened = d.mac;
+  openHistory(d);
+}
+window.addEventListener("hashchange", () => { hashOpened = ""; openFromHash(); });
+
+$("history-close").addEventListener("click", closeHistory);
+$("history-backdrop").addEventListener("click", closeHistory);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("history").hidden) closeHistory();
+});
+
 /* ---------- defend tab ---------- */
 
 let guideLoaded = false;
@@ -418,6 +496,7 @@ async function load() {
     renderSummary(summary);
     renderDevices();
     renderEvents(events);
+    openFromHash();
   } catch (e) {
     $("summary").textContent = "Could not load data: " + e.message;
   }

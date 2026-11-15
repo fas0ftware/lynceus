@@ -18,6 +18,7 @@ DEVICE_REMOVED = "device_removed"
 EVENT_KINDS = (NEW_DEVICE, IP_CHANGED, BACK_ONLINE, PORT_OPENED, PORT_CLOSED, DEVICE_REMOVED)
 
 MAX_EVENTS = 5000  # older events are pruned so the file never grows without bound
+PRESENCE_DAYS = 30  # hours a device was seen online, kept for the history view
 
 
 def now_iso():
@@ -99,6 +100,14 @@ def create_tables():
                 PRIMARY KEY (mac, port)
             )
         """)
+        # 2.6: one row per device per hour it was seen ("2026-11-16T21"), for the history view
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS presence (
+                mac  TEXT,
+                hour TEXT,
+                PRIMARY KEY (mac, hour)
+            )
+        """)
 
 
 def _log(conn, kind, mac, ip, detail="", ts=None):
@@ -119,6 +128,7 @@ def save_device(device):
     stamp = now.isoformat(timespec="seconds")
 
     with get_connection() as conn:
+        conn.execute("INSERT OR IGNORE INTO presence (mac, hour) VALUES (?, ?)", (device["mac"], stamp[:13]))
         row = conn.execute("SELECT ip, last_seen FROM devices WHERE mac = ?", (device["mac"],)).fetchone()
 
         if row:
@@ -177,6 +187,7 @@ def delete_device(mac):
             return False
         conn.execute("DELETE FROM ports WHERE mac = ?", (mac,))
         conn.execute("DELETE FROM accepted_ports WHERE mac = ?", (mac,))
+        conn.execute("DELETE FROM presence WHERE mac = ?", (mac,))
         conn.execute("DELETE FROM devices WHERE mac = ?", (mac,))
         _log(conn, DEVICE_REMOVED, mac, row[0], "removed from the dashboard")
         return True
@@ -272,6 +283,31 @@ def get_events(limit=100, mac=None):
     return [dict(zip(keys, row)) for row in rows]
 
 
-def prune_events(keep=MAX_EVENTS):
+def prune_events(keep=MAX_EVENTS, now=None):
+    cutoff = ((now or datetime.now()) - timedelta(days=PRESENCE_DAYS)).isoformat(timespec="seconds")[:13]
     with get_connection() as conn:
         conn.execute("DELETE FROM events WHERE id <= (SELECT MAX(id) FROM events) - ?", (keep,))
+        conn.execute("DELETE FROM presence WHERE hour < ?", (cutoff,))
+
+
+def get_history(mac, days=14, now=None):
+    """Which hours a device was seen in the last `days` days (oldest day first) and its
+    port and connection events. {"days": [{"date", "hours": [0/1 x 24], "online"}], ...}"""
+    days = max(1, min(int(days), PRESENCE_DAYS))
+    now = now or datetime.now()
+    first = (now - timedelta(days=days - 1)).date()
+    with get_connection() as conn:
+        seen = {h for (h,) in conn.execute("SELECT hour FROM presence WHERE mac = ? AND hour >= ?",
+                                           (mac, first.isoformat()))}
+    out = []
+    for i in range(days):
+        date = (first + timedelta(days=i)).isoformat()
+        hours = [1 if f"{date}T{h:02d}" in seen else 0 for h in range(24)]
+        out.append({"date": date, "hours": hours, "online": sum(hours)})
+    by_hour = [sum(d["hours"][h] for d in out) for h in range(24)]
+    return {
+        "days": out,
+        "online_hours": sum(d["online"] for d in out),
+        "by_hour": by_hour,          # how many of those days the device was seen at each hour
+        "events": get_events(200, mac),
+    }

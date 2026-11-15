@@ -120,6 +120,17 @@ def create_app(token=None, trusted_hosts=None):
                     event["risk"] = advisor.port_info(int(port))["risk"]
         return jsonify(events)
 
+    @app.route("/api/devices/<mac>/history")
+    def api_device_history(mac):
+        mac = mac.lower()
+        if not MAC_PATTERN.match(mac):
+            return jsonify({"ok": False, "error": "invalid MAC address"}), 400
+        try:
+            days = int(request.args.get("days", 14))
+        except ValueError:
+            return jsonify({"ok": False, "error": "days must be a number"}), 400
+        return jsonify(db.get_history(mac, days))
+
     @app.route("/api/devices/<mac>", methods=["POST"])
     def api_update_device(mac):
         mac = mac.lower()

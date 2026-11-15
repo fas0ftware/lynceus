@@ -1,7 +1,7 @@
 # Lynceus
 
 [![CI](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml/badge.svg)](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-2.5.0-blue)
+![Version](https://img.shields.io/badge/version-2.6.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -49,6 +49,7 @@ Most people have no idea what is connected to their Wi-Fi. This tool answers:
 - Summary cards (devices, online, not trusted, risky ports), search, quick filters.
 - **Activity timeline:** new devices, IP changes, devices back online after a while, ports opened/closed, devices removed.
 - Name / trust / **forget** a device, **CSV export**, MAC masking for screenshots (`?mask=1`).
+- **Device history:** *History* on any row shows the hours it was seen online over the last 14 days, its usual hours, and its port and connection events (link straight to one with `/#history=<mac>`).
 
 **Security hardening (v2)**
 - Listens on `127.0.0.1` by default. Serving on the LAN **requires a token** (16+ characters), exchanged once for an `HttpOnly`, `SameSite=Strict` cookie.
@@ -56,6 +57,8 @@ Most people have no idea what is connected to their Wi-Fi. This tool answers:
 - Strict **Content-Security-Policy** (no inline script), `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, `no-store` on API responses, 16 KB request limit.
 - Untrusted text is rendered with `textContent` only; CSV export is protected against spreadsheet formula injection.
 - Parameterized SQL everywhere; notification commands are argument lists (no shell) and use `--` so a vendor name can never become an option.
+
+![Device history (demo data)](docs/device-history.png)
 
 <p align="center"><img src="docs/filter-risky.png" alt="Risky ports filter" width="49%"> <img src="docs/defend.png" alt="Defend your network tab" width="49%"></p>
 
@@ -164,6 +167,7 @@ To open the dashboard on your phone: set `LYNCEUS_HOST=0.0.0.0` and a token (`py
 | `POST` | `/api/devices/<mac>` | `{"name": "Laptop", "trusted": true}` |
 | `DELETE` | `/api/devices/<mac>` | Forget a device (it is reported as new if it returns) |
 | `GET` | `/api/events?limit=100&mac=…` | Activity log, newest first (port events carry `risk`) |
+| `GET` | `/api/devices/<mac>/history?days=14` | Hours seen online per day (up to 30 days), seen-per-hour totals, the device's events |
 | `GET` | `/api/summary` | Security score, label, counts per risk, top three actions |
 | `GET` | `/api/advice/<port>?service=…` | What the port is, why it matters, fix steps per platform, how to verify |
 | `POST` | `/api/devices/<mac>/ports/<port>/accept` | `{"accepted": true}` acknowledges an open port (`false` undoes it) |
@@ -173,7 +177,7 @@ To open the dashboard on your phone: set `LYNCEUS_HOST=0.0.0.0` and a token (`py
 
 ## Tests
 
-89 tests (plus subtests) – the advisor (every scanned port has complete advice, score, caps, acknowledged ports, its API and token protection), database and migrations, event log, API, security headers, DNS-rebinding and CSRF guards, token flow, CSV injection guard, port scanner on local sockets, alerts and webhooks (mocked), the scan loop with fake network data, demo data. No root, no network.
+103 tests (plus subtests) – the advisor (every scanned port has complete advice, score, caps, acknowledged ports, its API and token protection), database and migrations, event log, online-hours history, API, security headers, DNS-rebinding and CSRF guards, token flow, CSV injection guard, port scanner on local sockets, alerts and webhooks (mocked), the scan loop with fake network data, demo data. No root, no network.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -199,6 +203,8 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 
 ## Changelog
 
+- **2.6.0** – Per-device history: every scan marks the hour a device was seen (one row per device per hour, kept 30 days, removed when you forget the device). The *History* panel shows a 14-day hour grid, the usual hours and the device's events. The demo has two weeks of hours.
+
 - **2.5.0** – Trusted devices no longer push alerts for ordinary new ports (the event log still records them). Risky ports (high and critical, e.g. Telnet, SMB, an open database) on a trusted device still alert: that is when you most want to know.
 
 - **2.4.0** – Port checks with [Janus](https://github.com/fas0ftware/janus) when it is installed (and in the Docker image): what really answers on each port, stored in a new `version` column (older databases get it on start) and shown on the dashboard. Falls back to the built-in scan when Janus is missing or fails.
@@ -216,7 +222,8 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 - [x] Docker image (2.3)
 - [x] Use the trusted flag to mute port alerts for chosen devices (2.5; risky ports still alert)
 - [x] Detect what actually answers on a port instead of trusting the port number (2.4, with Janus)
-- [ ] Per-device history chart
+- [x] Per-device history chart (2.6)
+- [ ] Weekly report: new devices, ports opened, devices that changed habits
 
 ---
 

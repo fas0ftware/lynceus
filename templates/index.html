@@ -110,6 +110,20 @@
     <div id="drawer-verify"></div>
   </aside>
 
+  <div id="history-backdrop" class="backdrop" hidden></div>
+  <aside id="history" class="drawer" hidden aria-labelledby="history-title" role="dialog">
+    <button class="close" id="history-close" aria-label="Close">✕</button>
+    <h2 id="history-title"></h2>
+    <div id="history-device" class="muted"></div>
+    <h3>Seen online <span class="muted small">(last 14 days, one square per hour)</span></h3>
+    <div id="history-grid" class="heat" role="img" aria-label="Hours the device was seen online"></div>
+    <p id="history-summary" class="muted small"></p>
+    <h3>Usual hours <span class="muted small">(days seen at each hour)</span></h3>
+    <div id="history-hours" class="hour-bars"></div>
+    <h3>Ports and connections</h3>
+    <ol id="history-events" class="events"></ol>
+  </aside>
+
   <footer class="muted">v{{ version }} · refreshes every 10 s · data stays on this computer</footer>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
