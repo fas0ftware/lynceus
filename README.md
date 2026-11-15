@@ -1,7 +1,7 @@
 # Lynceus
 
 [![CI](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml/badge.svg)](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-2.3.0-blue)
+![Version](https://img.shields.io/badge/version-2.4.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -93,6 +93,15 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### What answers on a port (Janus)
+
+With the [Janus](https://github.com/fas0ftware/janus) scanner installed (the Docker
+image includes it), port checks run `janus --sv` and record what actually answers, not
+what the port number usually means: `OpenSSH 9.6p1` on 2222, a web server on 8080, or
+`TLS 1.0, AES256-SHA` on a TV's 8080 (an outdated cipher the number alone would never
+show). The software line appears when you hover a port on the dashboard. Without Janus,
+or if it fails, the built-in connect scan is used; start-up says which one runs.
+
 ### Docker
 
 ```bash
@@ -140,6 +149,8 @@ Find your subnet with `ip -4 -brief a` (`192.168.1.23/24` → `192.168.1.0/24`).
 | `LYNCEUS_WEBHOOK_URL` | – | Discord / Slack / Mattermost incoming webhook |
 | `LYNCEUS_HOST` / `LYNCEUS_PORT` | `127.0.0.1` / `5000` | Dashboard address |
 | `LYNCEUS_TOKEN` | – | Required (16+ chars) when `LYNCEUS_HOST` is not loopback |
+| `LYNCEUS_JANUS` | auto | Path to the [Janus](https://github.com/fas0ftware/janus) scanner (else `janus` on `PATH`, else `../Janus/janus`) |
+| `LYNCEUS_ENGINE` | `auto` | `builtin` = never use Janus, only the connect scan |
 
 The old `NETMON_*` names from before 2.2 still work; a `LYNCEUS_*` setting wins when both are set.
 
@@ -188,6 +199,8 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 
 ## Changelog
 
+- **2.4.0** – Port checks with [Janus](https://github.com/fas0ftware/janus) when it is installed (and in the Docker image): what really answers on each port, stored in a new `version` column (older databases get it on start) and shown on the dashboard. Falls back to the built-in scan when Janus is missing or fails.
+
 - **2.3.0** – Docker image and `compose.yaml` (scanner with only `CAP_NET_RAW` as a normal user, dashboard with no capabilities). The scanner now asks the kernel whether it may send raw packets instead of insisting on root, so it also runs with just that capability outside Docker.
 
 - **2.2.0** – new name: **Lynceus** (was network-monitor). Settings are `LYNCEUS_*`; the old `NETMON_*` names keep working. The dashboard login cookie was renamed, so a phone that used the token link opens it once more.
@@ -200,7 +213,7 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 
 - [x] Docker image (2.3)
 - [ ] Use the trusted flag to mute port alerts for chosen devices
-- [ ] Detect what actually answers on a port (banners) instead of trusting the port number
+- [x] Detect what actually answers on a port instead of trusting the port number (2.4, with Janus)
 - [ ] Per-device history chart
 
 ---

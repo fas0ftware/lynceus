@@ -12,9 +12,9 @@ DEVICES = [
     ("3c:84:6a:12:a4:01", "192.168.1.1", "TP-LINK TECHNOLOGIES", "Router", True, 0, [(53, "domain"), (80, "http"), (443, "https")]),
     ("a4:83:e7:5b:20:11", "192.168.1.20", "Apple, Inc.", "Work laptop", True, 0, [(5000, "commplex-main")]),
     ("f0:18:98:44:3e:7a", "192.168.1.21", "Apple, Inc.", "iPhone", True, 1, [(62078, "iphone-sync")]),
-    ("dc:a6:32:9c:01:5e", "192.168.1.30", "Raspberry Pi Trading Ltd", "Pi-hole", True, 0, [(22, "ssh"), (53, "domain"), (80, "http")]),
+    ("dc:a6:32:9c:01:5e", "192.168.1.30", "Raspberry Pi Trading Ltd", "Pi-hole", True, 0, [(22, "ssh", "OpenSSH 9.2p1 (Debian-2+deb12u3)"), (53, "domain"), (80, "http", "lighttpd 1.4.69")]),
     ("00:17:88:6b:2f:90", "192.168.1.40", "Philips Lighting BV", "Hue Bridge", True, 0, [(80, "http"), (443, "https")]),
-    ("b8:27:eb:00:fe:33", "192.168.1.41", "Raspberry Pi Foundation", "Old camera Pi", False, 0, [(22, "ssh"), (23, "telnet"), (554, "rtsp")]),
+    ("b8:27:eb:00:fe:33", "192.168.1.41", "Raspberry Pi Foundation", "Old camera Pi", False, 0, [(22, "ssh", "OpenSSH 7.4p1 (Raspbian-10+deb9u7)"), (23, "telnet"), (554, "rtsp")]),
     ("30:05:5c:7a:91:02", "192.168.1.50", "Brother Industries", "Printer", True, 2, [(80, "http"), (9100, "jetdirect")]),
     ("70:85:c2:d1:44:aa", "192.168.1.60", "ASRock Incorporation", "Desktop PC", True, 0, [(139, "netbios-ssn"), (445, "microsoft-ds"), (3389, "ms-wbt-server")]),
     ("44:65:0d:3c:7e:18", "192.168.1.70", "Amazon Technologies Inc.", "Echo Dot", True, 4, []),
@@ -36,8 +36,10 @@ def seed(now=None):
             last = (now - timedelta(minutes=ago)).isoformat(timespec="seconds")
             conn.execute("INSERT OR REPLACE INTO devices VALUES (?, ?, ?, ?, ?, ?, ?)",
                          (mac, ip, vendor, first, last, name, int(trusted)))
-            for port, service in ports:
-                conn.execute("INSERT OR REPLACE INTO ports VALUES (?, ?, ?, ?, ?)", (mac, port, service, first, last))
+            for item in ports:
+                port, service, version = (tuple(item) + ("",))[:3]
+                conn.execute("INSERT OR REPLACE INTO ports (mac, port, service, version, first_seen, last_seen) "
+                             "VALUES (?, ?, ?, ?, ?, ?)", (mac, port, service, version, first, last))
             db._log(conn, db.NEW_DEVICE, mac, ip, vendor, first)
 
         events = [

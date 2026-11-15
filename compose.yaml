@@ -13,7 +13,7 @@ services:
   scanner:
     <<: *hardening
     build: .
-    image: lynceus:2.3.0
+    image: lynceus:2.4.0
     network_mode: host
     cap_drop: [ALL]
     cap_add: [NET_RAW]
@@ -24,7 +24,7 @@ services:
 
   dashboard:
     <<: *hardening
-    image: lynceus:2.3.0
+    image: lynceus:2.4.0
     depends_on: [scanner]
     command: ["python", "app.py"]
     network_mode: host

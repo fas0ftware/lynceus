@@ -97,7 +97,7 @@ function matches(d) {
   if (filter === "risky" && openRisky(d).length === 0) return false;
   const q = $("search").value.trim().toLowerCase();
   if (!q) return true;
-  const hay = [d.name, d.ip, d.mac, d.vendor, ...d.ports.map((p) => p.port + "/" + p.service + " " + p.name)]
+  const hay = [d.name, d.ip, d.mac, d.vendor, ...d.ports.map((p) => p.port + "/" + p.service + " " + p.name + " " + (p.version || ""))]
     .join(" ")
     .toLowerCase();
   return hay.includes(q);
@@ -105,7 +105,7 @@ function matches(d) {
 
 function portChip(d, p) {
   const chip = el("button", "port risk-" + p.risk + (p.accepted ? " accepted" : ""), p.port + "/" + p.service);
-  chip.title = `${p.name} · ${RISK_TEXT[p.risk]} risk${p.accepted ? " · acknowledged" : ""} · click for advice`;
+  chip.title = `${p.version ? p.version + " · " : ""}${p.name} · ${RISK_TEXT[p.risk]} risk${p.accepted ? " · acknowledged" : ""} · click for advice`;
   chip.addEventListener("click", () => openAdvice(d, p));
   return chip;
 }

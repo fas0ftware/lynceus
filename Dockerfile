@@ -1,6 +1,16 @@
 # Lynceus in a container. Two services from one image (see compose.yaml):
 #   scanner    python main.py   ARP + port checks; needs CAP_NET_RAW and the host network
 #   dashboard  python app.py    Flask dashboard; no capabilities at all
+# Stage 1: the Janus scanner (C) from a pinned commit, for service detection on open ports.
+FROM debian:bookworm-slim AS janus
+ARG JANUS_COMMIT=c0c6d8e3a22f629af3c6df82af5b0d45c844817e
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential ca-certificates git \
+ && rm -rf /var/lib/apt/lists/*
+RUN git clone https://github.com/fas0ftware/janus.git /src \
+ && git -C /src checkout --detach "$JANUS_COMMIT" \
+ && make -C /src
+
 FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -16,6 +26,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY --from=janus /src/janus /usr/local/bin/janus
 COPY *.py ./
 COPY static ./static
 COPY templates ./templates

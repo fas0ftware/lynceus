@@ -46,6 +46,8 @@ jobs:
           probe='import os, socket; socket.socket(socket.AF_PACKET, socket.SOCK_RAW).close(); print("raw ok as uid", os.getuid())'
           docker run --rm --cap-drop ALL --cap-add NET_RAW lynceus:ci python-netraw -c "$probe" | grep "raw ok as uid 10001"
           ! docker run --rm --cap-drop ALL lynceus:ci python-netraw -c "$probe"
+      - name: Janus is in the image
+        run: docker run --rm lynceus:ci janus --version | grep -E "^janus [0-9]"
       - name: Dashboard runs with every capability dropped
         run: |
           set -e

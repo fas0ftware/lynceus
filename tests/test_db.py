@@ -88,7 +88,7 @@ class PortTests(TempDatabaseTestCase):
     def test_closed_ports_are_removed(self):
         db.save_ports(self.MAC, [(22, "ssh"), (80, "http")])
         db.save_ports(self.MAC, [(22, "ssh")])
-        self.assertEqual(db.get_all_ports()[self.MAC], [{"port": 22, "service": "ssh"}])
+        self.assertEqual(db.get_all_ports()[self.MAC], [{"port": 22, "service": "ssh", "version": ""}])
 
     def test_all_ports_closed_clears_the_device(self):
         db.save_ports(self.MAC, [(22, "ssh")])

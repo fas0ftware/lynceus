@@ -16,7 +16,7 @@ from config import (
 )
 from db import count_devices, create_tables, prune_events, save_device, save_ports
 from advisor import RISKY_LEVELS, port_info
-from portscan import scan_ports
+from portscan import janus_binary, scan_device
 from scanner import scan
 
 def can_send_raw_packets():
@@ -41,14 +41,14 @@ def scan_device_ports(device, silent):
     # The first port scan of a device in this run is the baseline; alerts start from the second.
     has_baseline = mac in last_port_scan
 
-    open_ports = scan_ports(device["ip"])
+    open_ports = scan_device(device["ip"])
     new_ports = save_ports(mac, open_ports, ip=device["ip"], log=has_baseline)
     last_port_scan[mac] = time.monotonic()
 
     if silent or not has_baseline:
         return
 
-    services = dict(open_ports)
+    services = {item[0]: item[1] for item in open_ports}
     for port in new_ports:
         info = port_info(port, services[port])
         risky = f" (risky: {info['risk']}, {info['name']})" if info["risk"] in RISKY_LEVELS else ""
@@ -119,6 +119,8 @@ def main(argv=None):
     if first_run:
         print("Empty database: the first round is silent, current devices are stored as known.")
     print(f"Scanning {ip_range} every {args.interval} seconds. Press Ctrl+C to stop.")
+    janus = janus_binary()
+    print(f"Port checks: {'Janus (' + janus + ') with service detection' if janus else 'built-in connect scan'}")
 
     try:
         while True:

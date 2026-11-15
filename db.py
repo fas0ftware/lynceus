@@ -74,6 +74,9 @@ def create_tables():
                 PRIMARY KEY (mac, port)
             )
         """)
+        # 2.4: what actually answers on the port (from Janus --sv), e.g. "OpenSSH 9.6p1"
+        if "version" not in [row[1] for row in conn.execute("PRAGMA table_info(ports)")]:
+            conn.execute("ALTER TABLE ports ADD COLUMN version TEXT DEFAULT ''")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 id     INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -179,7 +182,7 @@ def count_devices():
 
 
 def save_ports(mac, open_ports, ip=None, log=True):
-    """open_ports: [(port, service), ...]
+    """open_ports: [(port, service), ...] or [(port, service, version), ...]
 
     Returns the list of newly opened ports. Closed ports are deleted. With
     log=True, PORT_OPENED / PORT_CLOSED events are written (pass log=False for
@@ -192,22 +195,23 @@ def save_ports(mac, open_ports, ip=None, log=True):
             "SELECT port, service FROM ports WHERE mac = ?", (mac,)
         )}
 
-        for port, service in open_ports:
+        for item in open_ports:
+            port, service, version = (tuple(item) + ("",))[:3]
             if port in known:
                 conn.execute(
-                    "UPDATE ports SET service = ?, last_seen = ? WHERE mac = ? AND port = ?",
-                    (service, now, mac, port),
+                    "UPDATE ports SET service = ?, version = ?, last_seen = ? WHERE mac = ? AND port = ?",
+                    (service, version or "", now, mac, port),
                 )
             else:
                 conn.execute(
-                    "INSERT INTO ports (mac, port, service, first_seen, last_seen) VALUES (?, ?, ?, ?, ?)",
-                    (mac, port, service, now, now),
+                    "INSERT INTO ports (mac, port, service, version, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?)",
+                    (mac, port, service, version or "", now, now),
                 )
                 new_ports.append(port)
                 if log and known:  # a device's very first port list is not "news"
                     _log(conn, PORT_OPENED, mac, ip, f"{port}/{service}", now)
 
-        current = {port for port, _ in open_ports}
+        current = {item[0] for item in open_ports}
         for port in set(known) - current:
             conn.execute("DELETE FROM ports WHERE mac = ? AND port = ?", (mac, port))
             if log:
@@ -217,12 +221,12 @@ def save_ports(mac, open_ports, ip=None, log=True):
 
 
 def get_all_ports():
-    """{mac: [{"port": 22, "service": "ssh"}, ...]}"""
+    """{mac: [{"port": 22, "service": "ssh", "version": "OpenSSH 9.6p1"}, ...]}"""
     result = {}
     with get_connection() as conn:
-        rows = conn.execute("SELECT mac, port, service FROM ports ORDER BY port").fetchall()
-    for mac, port, service in rows:
-        result.setdefault(mac, []).append({"port": port, "service": service})
+        rows = conn.execute("SELECT mac, port, service, version FROM ports ORDER BY port").fetchall()
+    for mac, port, service, version in rows:
+        result.setdefault(mac, []).append({"port": port, "service": service, "version": version or ""})
     return result
 
 
