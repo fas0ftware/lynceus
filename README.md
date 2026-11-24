@@ -1,7 +1,7 @@
 # Lynceus
 
 [![CI](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml/badge.svg)](https://github.com/fas0ftware/lynceus/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-2.6.0-blue)
+![Version](https://img.shields.io/badge/version-2.6.1-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -203,6 +203,7 @@ CI runs [bandit](https://github.com/PyCQA/bandit) and [pip-audit](https://github
 
 ## Changelog
 
+- **2.6.1** – Security: desktop notifications escape `&`, `<` and `>` in the text. A device on the network chooses its own name and banners, and notification servers read the body as markup, so a name like `<a href=…>` could add a link to an alert.
 - **2.6.0** – Per-device history: every scan marks the hour a device was seen (one row per device per hour, kept 30 days, removed when you forget the device). The *History* panel shows a 14-day hour grid, the usual hours and the device's events. The demo has two weeks of hours.
 
 - **2.5.0** – Trusted devices no longer push alerts for ordinary new ports (the event log still records them). Risky ports (high and critical, e.g. Telnet, SMB, an open database) on a trusted device still alert: that is when you most want to know.

@@ -59,9 +59,15 @@ def send_push(title, message, env=os.environ):
     return sent
 
 
+def markup_escape(text):
+    """Notification servers read the body as markup; a device can name itself "<a href=...>"."""
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def send_desktop(title, message):
     if not shutil.which("notify-send"):
         return
+    message = markup_escape(message)
     sudo_user = os.environ.get("SUDO_USER")
     try:
         if hasattr(os, "geteuid") and os.geteuid() == 0 and sudo_user:

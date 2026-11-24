@@ -39,6 +39,16 @@ class SendNotificationTests(unittest.TestCase):
         # "--" stops a vendor/title starting with "-" from being read as an option
         self.assertEqual(cmd[-3:], ["--", "T", "M"])
 
+    def test_device_text_cannot_add_markup(self):
+        commands = []
+        with mock.patch.dict(alert.os.environ, clear=False) as env, \
+                mock.patch.object(alert.subprocess, "run", lambda cmd, **k: commands.append(cmd)), \
+                mock.patch.object(alert.shutil, "which", lambda name: "/usr/bin/" + name), \
+                redirect_stdout(io.StringIO()):
+            env.pop("SUDO_USER", None)
+            alert.send_desktop("New device", 'Name: <a href="https://evil.example">Router</a> & co')
+        self.assertEqual(commands[0][-1], 'Name: &lt;a href="https://evil.example"&gt;Router&lt;/a&gt; &amp; co')
+
     def test_no_notify_send_installed_is_fine(self):
         with mock.patch.object(alert.shutil, "which", lambda name: None), \
                 mock.patch.object(alert.subprocess, "run", side_effect=AssertionError("must not run")), \
